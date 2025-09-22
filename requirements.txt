@@ -1,0 +1,7 @@
+streamlit
+langchain
+langchain-community
+chromadb
+duckduckgo-search
+pypdf
+zhipuai
