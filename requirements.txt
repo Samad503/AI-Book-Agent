@@ -5,3 +5,4 @@ chromadb
 duckduckgo-search
 pypdf
 zhipuai
+faiss-cpu
