@@ -5,3 +5,5 @@ duckduckgo-search
 pypdf
 zhipuai
 faiss-cpu
+ddgs
+
