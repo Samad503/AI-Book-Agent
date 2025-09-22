@@ -3,8 +3,8 @@ import streamlit.components.v1 as components
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings
-from langchain.vectorstores import FAISS
 from langchain_community.chat_models.zhipuai import ChatZhipuAI
+from langchain.vectorstores import FAISS
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain.memory import ConversationBufferMemory
 from langchain.tools import tool
@@ -16,11 +16,11 @@ import os
 st.title("📚 AI Agent for Your Book")
 
 # ---- API Key ----
-os.environ["ZHIPUAI_API_KEY"] = "c49c2ec869db4fe1ad1c2671b95d4bb1.rqM6wykOXfUAp6TA"
+os.environ["ZHIPUAI_API_KEY"] = "cabe53f902b74037a307fbfcab06f51b.zJfyw4QEVNQBVmhV"
 
 # Helper: clean text
 def clean_text(text: str) -> str:
-    # Remove invalid surrogate characters safely
+    """Safely clean text and strip invalid characters."""
     safe = text.encode("utf-8", "ignore").decode("utf-8", "ignore")
     return safe.replace("\n", " ").replace("\r", " ").strip()
 
@@ -47,8 +47,21 @@ def build_book_db(pdf_file):
     # Create embeddings
     embeddings = ZhipuAIEmbeddings(api_key=os.environ["ZHIPUAI_API_KEY"])
 
-    # Use FAISS instead of Chroma
-    db = FAISS.from_texts(texts, embeddings)
+    # Batch process to avoid hitting ZhipuAI limits
+    batch_size = 50
+    db = None
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        if db is None:
+            db = FAISS.from_texts(batch, embeddings)
+        else:
+            db.add_texts(batch)
+
+    # Remove temp file
+    try:
+        os.remove(temp_path)
+    except Exception:
+        pass
 
     return db.as_retriever()
 
@@ -76,6 +89,7 @@ if "retriever" in st.session_state:
         text = "\n\n".join([doc.page_content for doc in docs[:5]])
         return f"Make 5 quiz questions from this:\n{text}"
 
+    # Tools + Agent setup
     search_tool = DuckDuckGoSearchRun()
     chat = ChatZhipuAI(api_key=os.environ["ZHIPUAI_API_KEY"], model_name="GLM-4.5")
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -112,6 +126,7 @@ if "retriever" in st.session_state:
 
         # ---- Speak / Stop Buttons ----
         col1, col2 = st.columns(2)
+
         with col1:
             if st.button("🔊 Speak Answer"):
                 js_code = f"""
@@ -131,4 +146,3 @@ if "retriever" in st.session_state:
                 </script>
                 """
                 components.html(js_code, height=0, width=0)
-
