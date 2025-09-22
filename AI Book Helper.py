@@ -16,7 +16,7 @@ import os
 st.title("📚 AI Agent for Your Book")
 
 # ---- API Key ----
-os.environ["ZHIPUAI_API_KEY"] = "c49c2ec869db4fe1ad1c2671b95d4bb1.rqM6wykOXfUAp6TA"
+os.environ["ZHIPUAI_API_KEY"] = "c65808e3398aa4076a96ad30a896ab86c.pf2ciGT3NRFrGqhC"
 
 # Helper: clean text
 def clean_text(text: str) -> str:
@@ -146,4 +146,5 @@ if "retriever" in st.session_state:
                 </script>
                 """
                 components.html(js_code, height=0, width=0)
+
 
