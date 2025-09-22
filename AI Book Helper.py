@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.zhipuai import ZhipuAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import FAISS
 from langchain_community.chat_models.zhipuai import ChatZhipuAI
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain.memory import ConversationBufferMemory
@@ -11,7 +11,6 @@ from langchain.tools import tool
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain import hub
 import os
-import shutil
 
 # ---- Title ----
 st.title("📚 AI Agent for Your Book")
@@ -27,8 +26,7 @@ def clean_text(text: str) -> str:
 
 # -------------------- Build DB --------------------
 def build_book_db(pdf_file):
-    """Loads the uploaded PDF, splits it into chunks, and builds a Chroma DB."""
-    shutil.rmtree("./book_db", ignore_errors=True)
+    """Loads the uploaded PDF, splits it into chunks, and builds a FAISS DB."""
 
     # Save uploaded file temporarily
     temp_path = os.path.join("./", pdf_file.name)
@@ -48,14 +46,10 @@ def build_book_db(pdf_file):
 
     # Create embeddings
     embeddings = ZhipuAIEmbeddings(api_key=os.environ["ZHIPUAI_API_KEY"])
-    db = Chroma(persist_directory="./book_db", embedding_function=embeddings)
 
-    # ZhipuAI only allows 64 inputs max → batch the texts
-    batch_size = 50
-    for i in range(0, len(texts), batch_size):
-        db.add_texts(texts[i:i + batch_size])
+    # Use FAISS instead of Chroma
+    db = FAISS.from_texts(texts, embeddings)
 
-    db.persist()
     return db.as_retriever()
 
 # ---- File Upload ----
@@ -64,7 +58,7 @@ uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 # -------------------- Initialize Agent --------------------
 if uploaded_file and "retriever" not in st.session_state:
     st.session_state.retriever = build_book_db(uploaded_file)
-    st.success(" PDF processed and knowledge base built!")
+    st.success("✅ PDF processed and knowledge base built!")
 
 if "retriever" in st.session_state:
     retriever = st.session_state.retriever
